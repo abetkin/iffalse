@@ -1,0 +1,7 @@
+name: iffalse
+channels:
+  - defaults
+  - conda-forge
+  - conda-forge/label/pre-3.8
+dependencies:
+  - python=3.8
