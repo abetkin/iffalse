@@ -11,11 +11,17 @@ class Table:
 class query:
     data = None
 
-    def _dedent(self, string):
-        for i, char in enumerate(string):
-            if not char.isspace():
-                break
-        return i, string[i:]
+    def __init__(self):
+        frame = currentframe().f_back
+        frameinfo = getframeinfo(frame)
+        self.lineno = frameinfo.lineno
+        self.filename = frameinfo.filename
+
+    def __bool__(self):
+        if self.data:
+            return super().__bool__()
+        self.data = self._fetch()
+        return False
 
     def _fetch(self):
         offset = None
@@ -35,17 +41,11 @@ class query:
         definition = ''.join(definition)
         return ast.parse(definition)
 
-    def __init__(self):
-        frame = currentframe().f_back
-        frameinfo = getframeinfo(frame)
-        self.lineno = frameinfo.lineno
-        self.filename = frameinfo.filename
-
-    def __bool__(self):
-        if self.data:
-            return super().__bool__()
-        self.data = self._fetch()
-        return False
+    def _dedent(self, string):
+        for i, char in enumerate(string):
+            if not char.isspace():
+                break
+        return i, string[i:]
 
 
 if __name__ == '__main__':
