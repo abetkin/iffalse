@@ -44,7 +44,6 @@ class query:
     def __bool__(self):
         if self.data:
             return super().__bool__()
-        self._called = True
         self.data = self._fetch()
         return False
 
