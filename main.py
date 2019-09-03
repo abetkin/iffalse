@@ -1,6 +1,8 @@
 import ast
-import os
+from cached_property import cached_property as cached
 from inspect import currentframe, getframeinfo
+
+from traverser import Visitor
 
 
 class Table:
@@ -12,10 +14,7 @@ class query:
     data = None
 
     def __init__(self):
-        frame = currentframe().f_back
-        frameinfo = getframeinfo(frame)
-        self.lineno = frameinfo.lineno
-        self.filename = frameinfo.filename
+        self.frame = currentframe().f_back
 
     def __bool__(self):
         if self.data:
@@ -24,8 +23,24 @@ class query:
         return False
 
     def _fetch(self):
+        return self.query
+
+    @cached
+    def query(self):
+        node = ast.parse(self.definition)
+        visitor = Visitor()
+        visitor.visit(node)
+        tables = visitor.tables
+        for alias, table in tuple(tables.items()):
+            tables[alias] = eval(table, self.frame.f_globals, self.frame.f_locals)
+        return {
+            'tables': tables, 'fields': visitor.fields
+        }
+
+    @cached
+    def definition(self):
         offset = None
-        definition = []
+        fragment = []
         with open(self.filename) as f:
             for i, line in enumerate(f.readlines()):
                 if i < self.lineno:
@@ -33,19 +48,29 @@ class query:
                 num_spaces, line = self._dedent(line)
                 if offset is None:
                     offset = num_spaces
-                    definition.append(line)
+                    fragment.append(line)
                 elif num_spaces >= offset:
-                    definition.append(line)
+                    fragment.append(line)
                 else:
                     break
-        definition = ''.join(definition)
-        return ast.parse(definition)
+        return ''.join(fragment)
+
+    @cached
+    def lineno(self):
+        frameinfo = getframeinfo(self.frame)
+        return frameinfo.lineno
+
+    @cached
+    def filename(self):
+        frameinfo = getframeinfo(self.frame)
+        return frameinfo.filename
 
     def _dedent(self, string):
         for i, char in enumerate(string):
             if not char.isspace():
                 break
         return i, string[i:]
+
 
 
 if __name__ == '__main__':

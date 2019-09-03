@@ -5,3 +5,6 @@ channels:
   - conda-forge/label/pre-3.8
 dependencies:
   - python=3.8
+
+  - pip:
+      - cached_property
