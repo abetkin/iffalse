@@ -13,11 +13,10 @@ class Table:
     id: int
     value: str
 
-
 @dataclass
 class Qu(dict):
-    line: int
-    query: dict
+    tables: dict
+    fields: dict
 
 
 class QQ(Qu):
@@ -31,8 +30,6 @@ def query():
     return obj.query
 
 class Query():
-    data = None
-
     def __init__(self, frame):
         self.frame = frame
 
@@ -44,7 +41,7 @@ class Query():
         tables = visitor.tables
         for alias, table in tuple(tables.items()):
             tables[alias] = eval(table, self.frame.f_globals, self.frame.f_locals)
-        return QQ(line=self.lineno, query={'tables': tables, 'fields': visitor.fields})
+        return QQ(**{'tables': tables, 'fields': visitor.fields})
 
     @cached
     def definition(self):
