@@ -1,4 +1,8 @@
 import ast
+from dataclasses import dataclass
+from linecache import getlines
+from typing import TypedDict
+
 from cached_property import cached_property as cached
 from inspect import currentframe, getframeinfo
 
@@ -10,20 +14,27 @@ class Table:
     value: str
 
 
-class query:
-    data = None
+@dataclass
+class Qu(dict):
+    line: int
+    query: dict
 
-    def __init__(self):
-        self.frame = currentframe().f_back
 
+class QQ(Qu):
     def __bool__(self):
-        if self.data:
-            return super().__bool__()
-        self.data = self._fetch()
+        self.__class__ = self.__class__.__mro__[1]
         return False
 
-    def _fetch(self):
-        return self.query
+
+def query():
+    obj = Query(currentframe().f_back)
+    return obj.query
+
+class Query():
+    data = None
+
+    def __init__(self, frame):
+        self.frame = frame
 
     @cached
     def query(self):
@@ -33,26 +44,24 @@ class query:
         tables = visitor.tables
         for alias, table in tuple(tables.items()):
             tables[alias] = eval(table, self.frame.f_globals, self.frame.f_locals)
-        return {
-            'tables': tables, 'fields': visitor.fields
-        }
+        return QQ(line=self.lineno, query={'tables': tables, 'fields': visitor.fields})
 
     @cached
     def definition(self):
         offset = None
         fragment = []
-        with open(self.filename) as f:
-            for i, line in enumerate(f.readlines()):
-                if i < self.lineno:
-                    continue
-                num_spaces, line = self._dedent(line)
-                if offset is None:
-                    offset = num_spaces
-                    fragment.append(line)
-                elif num_spaces >= offset:
-                    fragment.append(line)
-                else:
-                    break
+        lines = getlines(self.filename)
+        for i, line in enumerate(lines):
+            if i < self.lineno:
+                continue
+            num_spaces, line = self._dedent(line)
+            if offset is None:
+                offset = num_spaces
+                fragment.append(line)
+            elif num_spaces >= offset:
+                fragment.append(line)
+            else:
+                break
         return ''.join(fragment)
 
     @cached
